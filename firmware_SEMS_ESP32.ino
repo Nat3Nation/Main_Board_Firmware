@@ -1,9 +1,13 @@
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <esp32-hal-timer.h>
+//#define TIMER_BASE_CLK    (APB_CLK_FREQ)  // Add this before include
+//#include <ESP32TimerInterrupt.h>
 #include <esp_task_wdt.h>
 #include <soc/soc.h>
+#include <cstdio>
+//#include <iostream>
+#include "BluetoothSerial.h"
 
 #include "WiFi.h"
 #include "ADE9000.h"
@@ -27,16 +31,12 @@ int8_t  PacketRSSI;                              //stores RSSI of received packe
 int8_t  PacketSNR;                               //stores signal to noise ratio (SNR) of received packet
 //LORA
 
-float V_fsp = 0;
-unsigned long lastTime = 0;
+BluetoothSerial SerialBT;
 
 Connection conn("http://172.20.10.8:8000/boards/authenticate"); 
 ADE9000 ade_0(&expander, 0);
 ADE9000 ade_1(&expander, 1);
 int json_state = 0;
-
-VoltageRMSRegs RMS_voltage; 
-CurrentRMSRegs RMS_current;
 
 //LORA
 void packet_is_OK()
@@ -128,7 +128,7 @@ void led_Flash(uint16_t flashes, uint16_t delaymS)
 }
 //LORA
 
-void IRAM_ATTR timerISR();
+//void IRAM_ATTR timerISR();
 
 void ADE9000_setup(uint32_t SPI_speed) {
   SPI.begin(26,25,33);    //Initiate SPI port 26,25,33
@@ -140,6 +140,24 @@ void ADE9000_setup(uint32_t SPI_speed) {
   delay(200); //give some time for everything to come up
 }
 
+void sendData(float voltage, float current){
+  /* Here is where we would send the data to the server */
+}
+
+void parseData(const char* message){
+  float voltage, current;
+  if (sscanf(message, "{%f,%f}", &voltage, &current) == 2) {
+    // Successfully parsed
+    Serial.print(F("Parsed values: "));
+    Serial.print(voltage);
+    Serial.print(F(","));
+    Serial.println(current);
+  } else {
+    // Parsing failed
+    Serial.print(F("Invalid message format\n"));
+  }
+}
+
 void setup()
 {
   // Initialize Serial Communication
@@ -147,15 +165,15 @@ void setup()
   delay(100);
 
   // Wait for the user to press start
-  Serial.println(" --- Energy Prediction and Monitoring System --- \n");
-  Serial.println("Please press enter to continue...");
+  Serial.println(F(" --- Energy Prediction and Monitoring System --- \n"));
+  Serial.println(F("Please press enter to continue..."));
   while(Serial.available() == 0);
   flushInputBuffer();
 
   // Connect to the server
   esp_log_level_set("*", ESP_LOG_NONE);
   Serial.println();
-  Serial.println("----------- Step 1: WiFi Connection -----------\n");
+  Serial.println(F("----------- Step 1: WiFi Connection -----------\n"));
   conn.initWiFi();
   conn.initBackend();
   delay(100);
@@ -209,6 +227,13 @@ void setup()
   Serial.println(RXBUFFER_SIZE);
   Serial.println();
 
+  // Initialize Bluetooth for Commands/Data Transfer
+  if(!SerialBT.begin("ESP32")){ //https://techtutorialsx.com/2018/04/27/esp32-arduino-bluetooth-classic-controlling-a-relay-remotely/
+    Serial.println("An error occurred initializing Bluetooth");
+  }else{
+    Serial.println("Bluetooth initialized");
+  }
+
   // Initiate the expander
   /*
   expander.begin();
@@ -251,7 +276,20 @@ void loop()
 
   digitalWrite(LED1, LOW);                       //LED off
 
-  Serial.println();
+  //Check for Bluetooth messages
+  if(SerialBT.available()){
+    String message;
+    Serial.print(F("BT Message received: "));
+    char incomingChar = SerialBT.read();
+    if (incomingChar != '\n'){
+      message += String(incomingChar);
+    }
+    else{
+      message = "";
+    }
+    parseData(message.c_str());
+    Serial.write(incomingChar); 
+  }
 
   /*
   unsigned long currentTime = millis();
