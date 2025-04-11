@@ -291,6 +291,22 @@ void loop()
     Serial.write(incomingChar); 
   }
 
+  //If user input is provided, send the command over bluetooth to the clientboard
+  if(Serial.available()){
+    String out = "";
+    flushInputBuffer();
+    while(1){
+      char input = Serial.read();
+      if (input == '\r') {
+        Serial.println();
+        break;
+      } else {
+        out += input;
+      }
+    }
+    SerialBT.write(out)
+  }
+
   /*
   unsigned long currentTime = millis();
   if (currentTime - lastTime >= 3000) {
