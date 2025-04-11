@@ -20,7 +20,17 @@
 
  */
 
-String 
+String preamble = "radio tx ";
+/*
+"action:energy_record"
+"id:ABC123"
+"v_mag:0.00"
+"i_mag:0.00"
+"pow_factor:1.00"
+*/
+String transmissions[] = {"616374696F6E3A656E657267795F7265636F7264", "69643A414243313233",
+                         "765F6D61673A302E303030", "695F6D61673A302E303030",
+                         "706F775F666163746F723A312E3030"};
 
 
 void setup() {
@@ -35,8 +45,38 @@ void setup() {
   digitalWrite(5, HIGH);
 
   //Transmit Data Packet
-  delay(100);
-  Serial1.write("radio tx ")
+  delay(5000);
+  readPacket();
+  delay(1000);
+  Serial1.println("mac pause");
+  delay(1000);
+  readPacket();
+  delay(1000);
+  Serial1.println("radio set freq 915000000");
+  delay(1000);
+  readPacket();
+  delay(1000);
+  Serial1.println("radio set cr 4/8");
+  delay(1000);
+  readPacket();
+  delay(1000);
+  String message;
+  char *send;
+  for(int i = 0; i < 5; i++) {
+    message = preamble + transmissions[i];
+    //send = message.c_str();
+    Serial1.println(message);
+    delay(2000);
+    readPacket();
+    delay(1000);
+  }
+}
+
+void readPacket() {
+  while (Serial1.available()) {
+    int inByte = Serial1.read();
+    Serial.write(inByte);
+  }
 }
 
 void loop() {
