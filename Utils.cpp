@@ -37,3 +37,43 @@ String getUserInput(String prompt) {
   }
   return out;
 }
+
+String generate_json_energy_record(char *transmission) {
+  // Create a DynamicJsonDocument
+  DynamicJsonDocument doc(2048);
+
+  String fields[18];
+  String copy;
+  char *str;
+  int i = 0;
+  while ((str = strtok_r(transmission, ",", &transmission)) != NULL) // delimiter is the semicolon
+      copy = String(str);
+      fields[i] = copy;
+      i++;
+
+  // Add data to the document
+  doc["action"] = fields[0];
+  doc["ade_id"] = fields[1];
+  // Create a nested object
+  JsonObject payload = doc.createNestedObject("payload");
+  payload["VA_MAG"] = fields[2];
+  payload["VB_MAG"] = fields[3];
+  payload["VC_MAG"] = fields[4];
+  payload["IA_MAG"] = fields[5];
+  payload["IB_MAG"] = fields[6];
+  payload["IC_MAG"] = fields[7];
+  payload["VA_ANG"] = fields[8];
+  payload["VB_ANG"] = fields[9];
+  payload["VC_ANG"] = fields[10];
+  payload["IA_ANG"] = fields[11];
+  payload["IB_ANG"] = fields[12];
+  payload["IC_ANG"] = fields[13];
+  payload["POW_FACTOR"] = fields[14];
+  payload["POW_APPARENT"] = fields[15];
+  payload["POW_ACTIVE"] = fields[16];
+  payload["POW_REACTIVE"] = fields[17];
+  
+  String jsonString;
+  serializeJson(doc, jsonString);
+  return jsonString;
+}
