@@ -1,4 +1,4 @@
-#include <HTTPClient.h>
+//#include <HTTPClient.h>
 #include <Wire.h>
  #include <SPI.h>
 //#define TIMER_BASE_CLK    (APB_CLK_FREQ)  // Add this before include
@@ -11,7 +11,7 @@
 
 #include <BLEDevice.h>
 
-#include "WiFi.h"
+//#include "WiFi.h"
 //#include "ADE9000.h"
 //#include "PCA9671BS.h"
 #include "Connection.h"
@@ -82,6 +82,7 @@ int8_t  PacketSNR;                               //stores signal to noise ratio 
 class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     if (advertisedDevice.getName() == bleServerName) { //Check if the name of the advertiser matches
+      Serial.println("Found it! Stopping Scan");
       advertisedDevice.getScan()->stop(); //Scan can be stopped, we found what we are looking for
       pServerAddress = new BLEAddress(advertisedDevice.getAddress()); //Address of advertiser is the one we need
       doConnect = true; //Set indicator, stating that we are ready to connect
@@ -102,9 +103,11 @@ static void dataNotifyCallback(
 
 //Connect to the BLE Server that has the name, Service, and Characteristics
 bool connectToServer(BLEAddress pAddress) {
+  Serial.println("Creating DFA Client");
    BLEClient* pClient = BLEDevice::createClient();
  
   // Connect to the remove BLE Server.
+  Serial.println("Attempting to Connect");
   pClient->connect(pAddress);
   Serial.println(" - Connected to server");
  
@@ -229,11 +232,12 @@ void ADE9000_setup(uint32_t SPI_speed) {
   delay(200); //give some time for everything to come up
 }
 */
-
+/*
 void sendData(float voltage, float current){
-  /* Here is where we would send the data to the server */
+  /* Here is where we would send the data to the server 
 }
-
+*/
+/*
 void parseData(const char* message){
   float voltage, current;
   if (sscanf(message, "{%f,%f}", &voltage, &current) == 2) {
@@ -247,7 +251,7 @@ void parseData(const char* message){
     Serial.print(F("Invalid message format\n"));
   }
 }
-
+*/
 void setup()
 {
   //bool bt_connected;
@@ -321,12 +325,15 @@ void setup()
   Serial.begin(115200);
   Serial.println("Initializing DFA Board Bluetooth");
 
-  BLEDevice::init("");
-  
+  BLEDevice::init("DFA");
+  Serial.println("Initialized");
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setInterval(100);
+  pBLEScan->setWindow(99);
   pBLEScan->setActiveScan(true);
   pBLEScan->start(30);
+  Serial.println("Scanned for Client Board");
 
   
   /*
@@ -371,8 +378,8 @@ void setup()
 void loop()
 {
   //conn.loop();
-  delay(100);
-  
+  //delay(100);
+  /*
   //LORA
   RXPacketL = LT.receive(RXBUFFER, RXBUFFER_SIZE, 60000, WAIT_RX); //wait for a packet to arrive with 60seconds (60000mS) timeout
 
@@ -392,7 +399,7 @@ void loop()
   }
 
   digitalWrite(LED1, LOW);                       //LED off
-
+*/
   if (doConnect == true) {
     if (connectToServer(*pServerAddress)) {
       Serial.println("We are now connected to the BLE Server.");
@@ -400,6 +407,7 @@ void loop()
       cCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t*)notificationOn, 2, true);
       dCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t*)notificationOn, 2, true);
       connected = true;
+      Serial.println("Checking for load dump");
     } else {
       Serial.println("We have failed to connect to the server; Restart your device to scan for nearby BLE server again.");
     }
