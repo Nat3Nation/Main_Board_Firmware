@@ -46,10 +46,11 @@ String generate_json_energy_record(char *transmission) {
   String copy;
   char *str;
   int i = 0;
-  while ((str = strtok_r(transmission, ",", &transmission)) != NULL) // delimiter is the semicolon
-      copy = String(str);
-      fields[i] = copy;
-      i++;
+  while ((str = strtok_r(transmission, ",", &transmission)) != NULL) {
+    copy = String(str);
+    fields[i] = copy;
+    i++;
+  } // delimiter is the semicolon
 
   // Add data to the document
   doc["action"] = fields[0];

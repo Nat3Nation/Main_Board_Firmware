@@ -1,9 +1,9 @@
 //#include <HTTPClient.h>
 #include <Wire.h>
- #include <SPI.h>
+#include <SPI.h>
 //#define TIMER_BASE_CLK    (APB_CLK_FREQ)  // Add this before include
 // //#include <ESP32TimerInterrupt.h>
- #include <esp_task_wdt.h>
+// #include <esp_task_wdt.h>
  #include <soc/soc.h>
  #include <cstdio>
 #include <iostream>
@@ -45,23 +45,6 @@ const uint8_t notificationOff[] = {0x0, 0x0};
 //Variables to store data
 char* dataChar;
 
-/*
-const char *pin = "1234";
-#define USE_NAME
-// Check if Bluetooth is available
-#if !defined(CONFIG_BT_ENABLED)
-#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
-#endif
-// Check Serial Port Profile
-#if !defined(CONFIG_BT_SPP_ENABLED)
-#error Serial Port Profile for Bluetooth is not available or not enabled. It is only available for the ESP32 chip.
-#endif
-BluetoothSerial SerialBT;
-#ifdef USE_NAME
-String slaveName = "Client_Board";
-#endif
-String masterName = "DFA";
-*/
 SX126XLT LT;                                     //create a library class instance called LT
 
 uint32_t RXpacketCount;
@@ -234,7 +217,7 @@ void ADE9000_setup(uint32_t SPI_speed) {
 */
 /*
 void sendData(float voltage, float current){
-  /* Here is where we would send the data to the server 
+  // Here is where we would send the data to the server 
 }
 */
 /*
@@ -252,6 +235,7 @@ void parseData(const char* message){
   }
 }
 */
+
 void setup()
 {
   //bool bt_connected;
@@ -322,57 +306,17 @@ void setup()
   Serial.println(RXBUFFER_SIZE);
   Serial.println();
 
-  Serial.begin(115200);
   Serial.println("Initializing DFA Board Bluetooth");
 
   BLEDevice::init("DFA");
   Serial.println("Initialized");
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setInterval(100);
-  pBLEScan->setWindow(99);
+  pBLEScan->setInterval(1349);
+  pBLEScan->setWindow(449);
   pBLEScan->setActiveScan(true);
-  pBLEScan->start(30);
+  pBLEScan->start(5, false);
   Serial.println("Scanned for Client Board");
-
-  
-  /*
-  // Initialize Bluetooth for Commands/Data Transfer
-  SerialBT.begin(masterName, true); //https://techtutorialsx.com/2018/04/27/esp32-arduino-bluetooth-classic-controlling-a-relay-remotely/
-  Serial.println("Bluetooth initialized");
-
-  #ifndef USE_NAME
-  SerialBT.setPin(pin);
-  Serial.println("Using PIN");
-  #endif
-
-  #ifdef USE_NAME
-  bt_connected = SerialBT.connect(slaveName);
-  Serial.printf("Connecting to slave BT device named \"%s\"\n", slaveName.c_str());
-  #endif
-
-  if (bt_connected) {
-    Serial.println("Connected Successfully!");
-  } else {
-    while (!SerialBT.connected(30000)) {
-      Serial.println(bt_connected);
-      Serial.println("Failed to connect. Make sure remote device is available and in range, then restart app.");
-    }
-  }
-  // Disconnect() may take up to 10 secs max
-  if (SerialBT.disconnect()) {
-    Serial.println("Disconnected Successfully!");
-  }
-  // This would reconnect to the slaveName(will use address, if resolved) or address used with connect(slaveName/address).
-  SerialBT.connect();
-  if (bt_connected) {
-    Serial.println("Reconnected Successfully!");
-  } else {
-    while (!SerialBT.connected(30000)) {
-      Serial.println("Failed to reconnect. Make sure remote device is available and in range, then restart app.");
-    }
-  }
-  */
 }
 
 void loop()
@@ -403,9 +347,10 @@ void loop()
   if (doConnect == true) {
     if (connectToServer(*pServerAddress)) {
       Serial.println("We are now connected to the BLE Server.");
-      //Activate the Notify property of each Characteristic
-      cCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t*)notificationOn, 2, true);
-      dCharacteristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t*)notificationOn, 2, true);
+      if(cCharacteristic->canNotify())
+        cCharacteristic->registerForNotify(dataNotifyCallback);
+      if(dCharacteristic->canNotify())
+        dCharacteristic->registerForNotify(dataNotifyCallback);
       connected = true;
       Serial.println("Checking for load dump");
     } else {
@@ -413,33 +358,18 @@ void loop()
     }
     doConnect = false;
   }
-  /*
-  //Check for Bluetooth messages
-  if(SerialBT.available()){
-    String message;
-    Serial.print(F("BT Message received: "));
-    char incomingChar = SerialBT.read();
-    if (incomingChar != '\n'){
-      message += String(incomingChar);
-    }
-    else{
-      message = "";
-    }
-    parseData(message.c_str());
-    Serial.write(incomingChar); 
-  }
-  */
+
   //If user input is provided, send the command over bluetooth to the clientboard
   if(connected && Serial.available()){
     flushInputBuffer();
-    char command;
+    char command = '2';
     while(1){
       char input = Serial.read();
       if (input == '\r') {
         Serial.println();
         break;
       } else {
-        command += input;
+        command = input;
       }
     }
     cCharacteristic->writeValue(command, 8);
