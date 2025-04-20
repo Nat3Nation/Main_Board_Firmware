@@ -1,17 +1,16 @@
-//#include <HTTPClient.h>
+#include <HTTPClient.h>
 #include <Wire.h>
 #include <SPI.h>
 //#define TIMER_BASE_CLK    (APB_CLK_FREQ)  // Add this before include
-// //#include <ESP32TimerInterrupt.h>
-// #include <esp_task_wdt.h>
- #include <soc/soc.h>
- #include <cstdio>
+#include <ESP32TimerInterrupt.h>
+#include <esp_task_wdt.h>
+#include <soc/soc.h>
+#include <cstdio>
 #include <iostream>
-//#include "BluetoothSerial.h"
 
 #include <BLEDevice.h>
 
-//#include "WiFi.h"
+#include "WiFi.h"
 //#include "ADE9000.h"
 //#include "PCA9671BS.h"
 #include "Connection.h"
@@ -55,9 +54,11 @@ uint8_t RXBUFFER[RXBUFFER_SIZE];                 //create the buffer that receiv
 uint8_t RXPacketL;                               //stores length of packet received
 int8_t  PacketRSSI;                              //stores RSSI of received packet
 int8_t  PacketSNR;                               //stores signal to noise ratio (SNR) of received packet
+
+bool RX_set = false;
 //LORA
 
-//Connection conn("http://172.20.10.8:8000/boards/authenticate"); 
+Connection conn("http://172.20.10.8:8000/boards/authenticate"); 
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -141,7 +142,7 @@ void packet_is_OK()
   Serial.print(F(",IRQreg,"));
   Serial.print(IRQStatus, HEX);
 
-  //conn.ping_LoRa_Backend();
+  conn.ping_LoRa_Backend();
 }
 
 
@@ -201,7 +202,29 @@ void led_Flash(uint16_t flashes, uint16_t delaymS)
     delay(delaymS);
   }
 }
-//LORA
+//LORA interrupt
+void IRAM_ATTR wakeUp()
+{
+  digitalWrite(LED1, HIGH);
+  //handler for the interrupt
+  RXPacketL = LT.readPacket(RXBUFFER, RXBUFFER_SIZE);   //now read in the received packet to the RX buffer
+
+  PacketRSSI = LT.readPacketRSSI();
+  PacketSNR = LT.readPacketSNR();
+
+  if (RXPacketL == 0)
+  {
+    packet_is_Error();
+  }
+  else
+  {
+    packet_is_OK();
+  }
+
+  RX_set = false;
+
+  digitalWrite(LED1, LOW);
+}
 
 //void IRAM_ATTR timerISR();
 /*
@@ -253,8 +276,8 @@ void setup()
   esp_log_level_set("*", ESP_LOG_NONE);
   Serial.println();
   Serial.println(F("----------- Step 1: WiFi Connection -----------\n"));
-  //conn.initWiFi();
-  //conn.initBackend();
+  conn.initWiFi();
+  conn.initBackend();
   delay(100);
 
   //LORA Setup
@@ -301,6 +324,7 @@ void setup()
   LT.setDioIrqParams(IRQ_RADIO_ALL, (IRQ_RX_DONE + IRQ_RX_TX_TIMEOUT), 0, 0);   //set for IRQ on TX done and timeout on DIO1
   LT.setHighSensitivity();  //set for maximum gain
   LT.setSyncWord(LORA_MAC_PRIVATE_SYNCWORD);
+  attachInterrupt(DIO1, wakeUp, RISING);
 
   Serial.print(F("Receiver ready - RXBUFFER_SIZE "));
   Serial.println(RXBUFFER_SIZE);
@@ -321,29 +345,9 @@ void setup()
 
 void loop()
 {
-  //conn.loop();
-  //delay(100);
-  /*
-  //LORA
-  RXPacketL = LT.receive(RXBUFFER, RXBUFFER_SIZE, 60000, WAIT_RX); //wait for a packet to arrive with 60seconds (60000mS) timeout
+  conn.loop();
+  delay(100);
 
-  digitalWrite(LED1, HIGH);                      //something has happened
-
-  PacketRSSI = LT.readPacketRSSI();              //read the recived RSSI value
-  PacketSNR = LT.readPacketSNR();                //read the received SNR value
-
-  Serial.println(RXPacketL);
-  if (RXPacketL == 0)                            //if the LT.receive() function detects an error, RXpacketL is 0
-  {
-    packet_is_Error();
-  }
-  else
-  {
-    packet_is_OK();
-  }
-
-  digitalWrite(LED1, LOW);                       //LED off
-*/
   if (doConnect == true) {
     if (connectToServer(*pServerAddress)) {
       Serial.println("We are now connected to the BLE Server.");
@@ -358,8 +362,18 @@ void loop()
     }
     doConnect = false;
   }
+  
+  //LORA
+  if (!RX_set) {
+    RX_set = true;
+    LT.fillSXBuffer(0, 1, '#');
+    RXPacketL = LT.receive(RXBUFFER, RXBUFFER_SIZE, 0, NO_WAIT); //wait for a packet to arrive with 60seconds (60000mS) timeout
+    LT.clearIrqStatus(IRQ_RADIO_ALL);                     //ensure the DIO1 low is cleared, otherwise there could be an immediate wakeup  
+    interrupts ();
+  }
 
   //If user input is provided, send the command over bluetooth to the clientboard
+  /*
   if(connected && Serial.available()){
     flushInputBuffer();
     char command = '2';
@@ -374,6 +388,7 @@ void loop()
     }
     cCharacteristic->writeValue(command, 8);
   }
+  */
 
   /*
   unsigned long currentTime = millis();
