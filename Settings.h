@@ -33,7 +33,7 @@
 //*******  Setup LoRa Parameters Here ! ***************
 
 //LoRa Modem Parameters
-const uint32_t Frequency = 850000000;           //frequency of transmissions in hertz
+const uint32_t Frequency = 915000000;           //frequency of transmissions in hertz
 const uint32_t Offset = 0;                      //offset frequency for calibration purposes
 
 const uint8_t Bandwidth = LORA_BW_125;          //LoRa bandwidth

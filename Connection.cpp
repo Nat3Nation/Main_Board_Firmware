@@ -104,7 +104,7 @@ void Connection::initBackend()
   char header[250];  
   sprintf(header, "Authorization: %s\r\n", token.c_str());
   webSocket_.setExtraHeaders(header);
-  webSocket_.begin("172.20.10.8", 8000, "/boards/socket");
+  webSocket_.begin("192.168.0.229", 8000, "/boards/socket");
 
   webSocket_.onEvent(onWebSocketEvent);
 }
@@ -199,7 +199,7 @@ void Connection::ping_LoRa_Backend() {
     String token;
   
     // Your Domain name with URL path or IP address with path
-    String server = "http://172.20.10.8:8000/demo";
+    String server = "http://192.168.0.229:8000/demo";
     http.begin(client, server);
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.GET();

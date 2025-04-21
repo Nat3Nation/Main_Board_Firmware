@@ -2,8 +2,8 @@
 #include <Wire.h>
 #include <SPI.h>
 //#define TIMER_BASE_CLK    (APB_CLK_FREQ)  // Add this before include
-#include <ESP32TimerInterrupt.h>
-#include <esp_task_wdt.h>
+//#include <ESP32TimerInterrupt.h>
+//#include <esp_task_wdt.h>
 #include <soc/soc.h>
 #include <cstdio>
 #include <iostream>
@@ -56,9 +56,10 @@ int8_t  PacketRSSI;                              //stores RSSI of received packe
 int8_t  PacketSNR;                               //stores signal to noise ratio (SNR) of received packet
 
 bool RX_set = false;
+bool RX_received = false;
 //LORA
 
-Connection conn("http://172.20.10.8:8000/boards/authenticate"); 
+Connection conn("http:/192.168.0.229:8000/boards/authenticate"); 
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -205,25 +206,7 @@ void led_Flash(uint16_t flashes, uint16_t delaymS)
 //LORA interrupt
 void IRAM_ATTR wakeUp()
 {
-  digitalWrite(LED1, HIGH);
-  //handler for the interrupt
-  RXPacketL = LT.readPacket(RXBUFFER, RXBUFFER_SIZE);   //now read in the received packet to the RX buffer
-
-  PacketRSSI = LT.readPacketRSSI();
-  PacketSNR = LT.readPacketSNR();
-
-  if (RXPacketL == 0)
-  {
-    packet_is_Error();
-  }
-  else
-  {
-    packet_is_OK();
-  }
-
-  RX_set = false;
-
-  digitalWrite(LED1, LOW);
+  RX_received = true;
 }
 
 //void IRAM_ATTR timerISR();
@@ -323,8 +306,7 @@ void setup()
   LT.setPacketParams(8, LORA_PACKET_VARIABLE_LENGTH, 255, LORA_CRC_ON, LORA_IQ_NORMAL);
   LT.setDioIrqParams(IRQ_RADIO_ALL, (IRQ_RX_DONE + IRQ_RX_TX_TIMEOUT), 0, 0);   //set for IRQ on TX done and timeout on DIO1
   LT.setHighSensitivity();  //set for maximum gain
-  LT.setSyncWord(LORA_MAC_PRIVATE_SYNCWORD);
-  attachInterrupt(DIO1, wakeUp, RISING);
+  LT.setSyncWord(LORA_MAC_PUBLIC_SYNCWORD);
 
   Serial.print(F("Receiver ready - RXBUFFER_SIZE "));
   Serial.println(RXBUFFER_SIZE);
@@ -368,8 +350,36 @@ void loop()
     RX_set = true;
     LT.fillSXBuffer(0, 1, '#');
     RXPacketL = LT.receive(RXBUFFER, RXBUFFER_SIZE, 0, NO_WAIT); //wait for a packet to arrive with 60seconds (60000mS) timeout
-    LT.clearIrqStatus(IRQ_RADIO_ALL);                     //ensure the DIO1 low is cleared, otherwise there could be an immediate wakeup  
-    interrupts ();
+    LT.clearIrqStatus(IRQ_RADIO_ALL);                     //ensure the DIO1 low is cleared, otherwise there could be an immediate wakeup 
+    Serial.println("Set LoRa Interrupt");
+    attachInterrupt(DIO1, wakeUp, RISING);
+    interrupts();
+  }
+
+  if (RX_received) {
+    detachInterrupt(DIO1);
+
+    digitalWrite(LED1, HIGH);
+
+    //handler for the interrupt
+    RXPacketL = LT.readPacket(RXBUFFER, RXBUFFER_SIZE);   //now read in the received packet to the RX buffer
+
+    PacketRSSI = LT.readPacketRSSI();
+    PacketSNR = LT.readPacketSNR();
+
+    if (RXPacketL == 0)
+    {
+      packet_is_Error();
+    }
+    else
+    {
+      packet_is_OK();
+    }
+
+    RX_set = false;
+    RX_received = false;
+
+    digitalWrite(LED1, LOW);
   }
 
   //If user input is provided, send the command over bluetooth to the clientboard
