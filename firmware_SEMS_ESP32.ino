@@ -1,27 +1,43 @@
+/*
+  SEMS DFA Motherboard Firmware - ECE/MEM 17
+  Developed by: Nate Judd, Cassius Garcia, Kaylie Ludwick, Varun Iyengar, and Harrison Muller
+  Description:
+    This file includes firmware for the operation of the DFA Motherboard, including code to read energy data from the onboard ADE9000s, LoRa communications
+    Bluetooth Low Energy Communications, and Data Transfer to the System Backend.
+  Compiling & Uploading:
+    For uploading, use the Huge APP partition scheme.
+*/
+
+/*
+  Network Communication Libraries - Needed for Bluetooth, LoRa, and WiFi
+*/
 #include <HTTPClient.h>
+#include "WiFi.h"
+#include "Connection.h"
+#include <BLEDevice.h>
+#include "SX126XLT.h"                            //include the appropriate library   
+#include "Settings.h"                            //include the setiings file, frequencies, LoRa settings etc
+
+/*
+  Additional Libraries - Needed for integration
+*/
 #include <Wire.h>
 #include <SPI.h>
-//#define TIMER_BASE_CLK    (APB_CLK_FREQ)  // Add this before include
-//#include <ESP32TimerInterrupt.h>
-//#include <esp_task_wdt.h>
 #include <soc/soc.h>
 #include <cstdio>
 #include <iostream>
-
-#include <BLEDevice.h>
-
-#include "WiFi.h"
-//#include "ADE9000.h"
-//#include "PCA9671BS.h"
-#include "Connection.h"
 #include "Utils.h"
-#include "esp_log.h"
-//LORA
-#include "SX126XLT.h"                            //include the appropriate library   
-#include "Settings.h"                            //include the setiings file, frequencies, LoRa settings etc   
+#include "esp_log.h"  
 
+/*
+  Setup Bluetooth Low Energy - DFA is client and will scan for the server (Client Boards)
+  https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
+*/
+
+//Define Client Board server name
 #define bleServerName "Client_Board"
 
+//Define BLUEUUIDs for required services/characteristics
 static BLEUUID cbServiceUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
 static BLEUUID cCharacteristicUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8");
 static BLEUUID dCharacteristicUUID("fb9ed969-b64c-4ea8-9111-325e3687b3fb");
@@ -44,30 +60,44 @@ const uint8_t notificationOff[] = {0x0, 0x0};
 //Variables to store data
 char* dataChar;
 
-SX126XLT LT;                                     //create a library class instance called LT
+/*
+  Setup LoRa Modules - Reciever
+  https://github.com/StuartsProjects/SX12XX-LoRa/tree/master/src
+*/
 
+//Create a library class instance called LT
+SX126XLT LT;
+
+//Define packet count and error for debugging
 uint32_t RXpacketCount;
 uint32_t errors;
 
-uint8_t RXBUFFER[RXBUFFER_SIZE];                 //create the buffer that received packets are copied into
+//Create the buffer that received packets are copied into
+uint8_t RXBUFFER[RXBUFFER_SIZE];                 
 
-uint8_t RXPacketL;                               //stores length of packet received
-int8_t  PacketRSSI;                              //stores RSSI of received packet
-int8_t  PacketSNR;                               //stores signal to noise ratio (SNR) of received packet
+uint8_t RXPacketL;                               //Stores length of packet received
+int8_t  PacketRSSI;                              //Stores RSSI of received packet
+int8_t  PacketSNR;                               //Stores signal to noise ratio (SNR) of received packet
 
 bool RX_set = false;
 bool RX_received = false;
-//LORA
 
+/*
+  Setup Wifi Connection - Needed for sending Data to Server
+  **See Connection.cpp and Connection.h
+*/
 Connection conn("http:/192.168.0.229:8000/boards/authenticate"); 
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
 
+/*
+  Set up BLE callbacks - Scan and Connect to Server
+  https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
+*/
 class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     if (advertisedDevice.getName() == bleServerName) { //Check if the name of the advertiser matches
-      Serial.println("Found it! Stopping Scan");
       advertisedDevice.getScan()->stop(); //Scan can be stopped, we found what we are looking for
       pServerAddress = new BLEAddress(advertisedDevice.getAddress()); //Address of advertiser is the one we need
       doConnect = true; //Set indicator, stating that we are ready to connect
@@ -76,6 +106,10 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
   }
 };
 
+/*
+  Print Data Received from Server
+  https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
+*/
 static void dataNotifyCallback(
   BLERemoteCharacteristic* pBLERemoteCharacteristic,
   uint8_t* pData,
@@ -86,7 +120,10 @@ static void dataNotifyCallback(
     Serial.println(dataChar);
 }
 
-//Connect to the BLE Server that has the name, Service, and Characteristics
+/*
+  Connect to the BLE Server that has the name, Service, and Characteristics
+  https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
+*/
 bool connectToServer(BLEAddress pAddress) {
   Serial.println("Creating DFA Client");
    BLEClient* pClient = BLEDevice::createClient();
@@ -110,12 +147,14 @@ bool connectToServer(BLEAddress pAddress) {
   Serial.println(" - Found our characteristics");
  
   //Assign callback functions for the Characteristics
-  //temperatureCharacteristic->registerForNotify(temperatureNotifyCallback);
   dCharacteristic->registerForNotify(dataNotifyCallback);
   return true;
 }
 
-//LORA
+/*
+  Print Packet Info on Successful Receive
+  https://github.com/StuartsProjects/SX12XX-LoRa/tree/master/src
+*/
 void packet_is_OK()
 {
   uint16_t IRQStatus, localCRC;
@@ -146,7 +185,10 @@ void packet_is_OK()
   conn.ping_LoRa_Backend();
 }
 
-
+/*
+  Print Packet Info on Failed Receive
+  https://github.com/StuartsProjects/SX12XX-LoRa/tree/master/src
+*/
 void packet_is_Error()
 {
   uint16_t IRQStatus;
@@ -181,7 +223,9 @@ void packet_is_Error()
 
 }
 
-
+/*
+  Print elapsec time - Use for debugging
+*/
 void printElapsedTime()
 {
   float seconds;
@@ -190,7 +234,9 @@ void printElapsedTime()
   Serial.print(F("s"));
 }
 
-
+/*
+  Flash LED - Use for debugging
+*/
 void led_Flash(uint16_t flashes, uint16_t delaymS)
 {
   uint16_t index;
@@ -203,11 +249,19 @@ void led_Flash(uint16_t flashes, uint16_t delaymS)
     delay(delaymS);
   }
 }
-//LORA interrupt
+
+/*
+  LoRa Interrupt Handler 
+  https://github.com/StuartsProjects/SX12XX-LoRa/blob/master/examples/SX126x_examples/Sleep/62_LoRa_Wake_on_RX_Atmel/62_LoRa_Wake_on_RX_Atmel.ino
+*/
 void IRAM_ATTR wakeUp()
 {
   RX_received = true;
 }
+
+/*
+  Code for ADE9000 and Data Manipulation - Commented for Development
+*/
 
 //void IRAM_ATTR timerISR();
 /*
@@ -242,9 +296,13 @@ void parseData(const char* message){
 }
 */
 
+/*
+  Setup Function - Try to declutter
+  https://github.com/StuartsProjects/SX12XX-LoRa/tree/master/src
+  https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
+*/
 void setup()
 {
-  //bool bt_connected;
   // Initialize Serial Communication
   Serial.begin(115200);
   delay(100);
@@ -276,6 +334,7 @@ void setup()
   Serial.println(F("104_LoRa_Receiver_Detailed_Setup_ESP32 Starting"));
 
   SPI.begin(SCK, MISO, MOSI);
+
   //setup hardware pins used by device, then check if device is found
   if (LT.begin(NSS, NRESET, RFBUSY, DIO1, RFSW_V1, RFSW_V2, LORA_DEVICE))
   {
@@ -292,6 +351,7 @@ void setup()
     }
   }
 
+  //Set up LoRa Parameters
   LT.setMode(MODE_STDBY_XOSC);
   LT.setRegulatorMode(USE_DCDC);
   LT.setPaConfig(0x04, PAAUTO, LORA_DEVICE);
@@ -312,8 +372,8 @@ void setup()
   Serial.println(RXBUFFER_SIZE);
   Serial.println();
 
+  //Initialize BLE and Begin Scanning
   Serial.println("Initializing DFA Board Bluetooth");
-
   BLEDevice::init("DFA");
   Serial.println("Initialized");
   BLEScan* pBLEScan = BLEDevice::getScan();
@@ -325,11 +385,18 @@ void setup()
   Serial.println("Scanned for Client Board");
 }
 
+/*
+  Loop Function - Implement WiFi, BLE, and LoRa Interrupt Functionality
+  https://github.com/StuartsProjects/SX12XX-LoRa/tree/master/src
+  https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
+*/
 void loop()
 {
+  //Connect to WiFi using Websocket
   conn.loop();
   delay(100);
 
+  //Connect Bluetooth Client Board and Handle Notifications
   if (doConnect == true) {
     if (connectToServer(*pServerAddress)) {
       Serial.println("We are now connected to the BLE Server.");
@@ -345,7 +412,7 @@ void loop()
     doConnect = false;
   }
   
-  //LORA
+  //Set LoRa Interrupts
   if (!RX_set) {
     RX_set = true;
     LT.fillSXBuffer(0, 1, '#');
@@ -356,6 +423,7 @@ void loop()
     interrupts();
   }
 
+  //After Successful receive, read packet and debug
   if (RX_received) {
     detachInterrupt(DIO1);
 
@@ -400,6 +468,9 @@ void loop()
   }
   */
 
+  /*
+  Code for ADE9000 and Data Manipulation - Commented for Development
+  */
   /*
   unsigned long currentTime = millis();
   if (currentTime - lastTime >= 3000) {
