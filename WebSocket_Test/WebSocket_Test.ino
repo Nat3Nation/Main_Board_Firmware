@@ -353,10 +353,10 @@ void setup()
   conn.initWiFi();
   while(WiFi.status() != WL_CONNECTED) {
 		delay(100);
-	}
-	webSocket.begin("192.168.0.229", 8000, "/boards/socket");     // server address, port and URL
-	webSocket.onEvent(onWebSocketEvent);        // event handler
-	webSocket.setReconnectInterval(5000);       // try ever 5000 again if connection has failed
+  }
+  webSocket.begin("192.168.0.229", 8000, "/boards/socket");     // server address, port and URL
+  webSocket.onEvent(onWebSocketEvent);        // event handler
+  webSocket.setReconnectInterval(5000);       // try ever 5000 again if connection has failed
   delay(100);
 
   //LORA Setup
