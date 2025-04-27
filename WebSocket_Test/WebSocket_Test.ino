@@ -279,6 +279,7 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       Serial.println();
     case WStype_CONNECTED:
       Serial.println("Connected to WebSocket server");
+      webSocket.sendTXT("Connected");
       break;
     case WStype_TEXT:
       websocket.sendTXT("Json Data Here");
