@@ -1,5 +1,5 @@
 /*
-  SEMS DFA Motherboard Firmware - ECE/MEM 17
+  SEMS DFA Motherboard Firmware Websocket Test- ECE/MEM 17
   Developed by: Nate Judd, Cassius Garcia, Kaylie Ludwick, Varun Iyengar, and Harrison Muller
   Description:
     This file includes firmware for the operation of the DFA Motherboard, including code to read energy data from the onboard ADE9000s, LoRa communications
@@ -86,7 +86,8 @@ bool RX_received = false;
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
 */
-Connection conn("http:/192.168.0.229:8000/boards/authenticate"); 
+Connection conn("http:/192.168.0.229:8000/boards/authenticate"); //Keeping conn since it does a lot of the initialization
+WebSocketsClient webSocket;
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -116,9 +117,6 @@ static void dataNotifyCallback(
   size_t length,
   bool isNotify) {
     dataChar = (char*)pData;
-    String json = generate_json_energy_record(dataChar);
-    //conn.send(json.c_str());
-    conn.HTTP_send_data(json.c_str());
     Serial.print("Received data: ");
     Serial.println(dataChar);
 }
@@ -183,12 +181,8 @@ void packet_is_OK()
   Serial.print(F(",Errors,"));
   Serial.print(errors);
   Serial.print(F(",IRQreg,"));
-  Serial.println(IRQStatus, HEX);
+  Serial.print(IRQStatus, HEX);
 
-  String json = generate_json_energy_record((char *)RXBUFFER);
-  Serial.println(json.c_str());
-  //conn.send(json.c_str());
-  conn.HTTP_send_data(json.c_str());
   conn.ping_LoRa_Backend();
 }
 
@@ -267,6 +261,39 @@ void IRAM_ATTR wakeUp()
 }
 
 /*
+  WebSocket Handler 
+  https://github.com/Links2004/arduinoWebSockets/blob/master/examples/esp32/WebSocketClient/WebSocketClient.ino
+*/
+void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+  // noInterrupts();
+  JsonObject payload_obj;
+  String action;
+  DynamicJsonDocument doc(1024);
+  switch(type) {
+    case WStype_DISCONNECTED:
+      Serial.println("Disconnected from WebSocket server");
+      break;
+    case WStype_ERROR:
+    Serial.print("Received error: ");
+      Serial.write(payload, length);
+      Serial.println();
+    case WStype_CONNECTED:
+      Serial.println("Connected to WebSocket server");
+      webSocket.sendTXT("Connected");
+      break;
+    case WStype_TEXT:
+      websocket.sendTXT("Json Data Here");
+    case WStype_BIN:
+      cCharacteristic->setValue(payload);
+      break;
+    default:
+      // Serial.println("Callback: Something else.");
+      break;
+  }
+  // interrupts();
+}
+
+/*
   Code for ADE9000 and Data Manipulation - Commented for Development
 */
 
@@ -325,7 +352,12 @@ void setup()
   Serial.println();
   Serial.println(F("----------- Step 1: WiFi Connection -----------\n"));
   conn.initWiFi();
-  conn.initBackend();
+  while(WiFi.status() != WL_CONNECTED) {
+		delay(100);
+  }
+  webSocket.begin("192.168.0.229", 8000, "/boards/socket");     // server address, port and URL
+  webSocket.onEvent(onWebSocketEvent);        // event handler
+  webSocket.setReconnectInterval(5000);       // try ever 5000 again if connection has failed
   delay(100);
 
   //LORA Setup
@@ -400,7 +432,7 @@ void setup()
 void loop()
 {
   //Connect to WiFi using Websocket
-  conn.loop();
+  webSocket.loop();
   delay(100);
 
   //Connect Bluetooth Client Board and Handle Notifications
