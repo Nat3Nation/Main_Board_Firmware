@@ -86,7 +86,7 @@ void Connection::initBackend()
   if(WiFi.status()== WL_CONNECTED) {
     HTTPClient http;
     http.begin(client_, serverName_);
-    http.setTimeout(10000);
+    http.setTimeout(100000);
     http.addHeader("Content-Type", "application/json");
     String jsonPayload = "{\"id\":\"680984395ae884f071d887ae\",\"board_type\":\"ADE9000\"}";
     int httpCode = http.POST(jsonPayload);
@@ -201,6 +201,7 @@ void Connection::ping_LoRa_Backend() {
     // Your Domain name with URL path or IP address with path
     String server = "http://172.20.10.10:8000/demo";
     http.begin(client, server);
+    http.setTimeout(100000);
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.GET();
     if (httpResponseCode > 0) { // HTTP response received
@@ -229,7 +230,8 @@ void Connection::HTTP_send_data(String const & message) {
     HTTPClient http;
   
     // Your Domain name with URL path or IP address with path
-    http.begin(client, "http://172.20.10.10:8000/energy-recordss");
+    http.begin(client, "http://172.20.10.10:8000/energy_data");
+    http.setTimeout(100000);
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.POST(message);
     Serial.print("HTTP Response code: ");

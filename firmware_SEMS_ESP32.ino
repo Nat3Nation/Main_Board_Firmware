@@ -82,11 +82,13 @@ int8_t  PacketSNR;                               //Stores signal to noise ratio 
 bool RX_set = false;
 bool RX_received = false;
 
+String dummy_data = "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": 120.0,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}";
+
 /*
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
 */
-Connection conn("http:/192.168.0.229:8000/boards/authenticate"); 
+Connection conn("http://172.20.10.10:8000/boards/authenticate"); 
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -188,7 +190,7 @@ void packet_is_OK()
   String json = generate_json_energy_record((char *)RXBUFFER);
   Serial.println(json.c_str());
   //conn.send(json.c_str());
-  conn.HTTP_send_data(json.c_str());
+  conn.HTTP_send_data(dummy_data);
   conn.ping_LoRa_Backend();
 }
 
