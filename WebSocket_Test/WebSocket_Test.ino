@@ -285,9 +285,9 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       webSocket.sendTXT("Connected");
       break;
     case WStype_TEXT:
-      websocket.sendTXT(generate_json_energy_record(transmission));
+      webSocket.sendTXT((uint8_t *)generate_json_energy_record(transmission).c_str());
     case WStype_BIN:
-      cCharacteristic->setValue(payload);
+      cCharacteristic->setValue(payload, length);
       break;
     default:
       // Serial.println("Callback: Something else.");
