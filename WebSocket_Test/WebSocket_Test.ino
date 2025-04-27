@@ -286,7 +286,6 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       break;
     case WStype_TEXT:
       webSocket.sendTXT((uint8_t *)generate_json_energy_record(transmission).c_str());
-      webSocket.sendTXT((uint8_t *)generate_json_energy_record(transmission).c_str());
     case WStype_BIN:
       cCharacteristic->writeValue(payload, length);
       break;
