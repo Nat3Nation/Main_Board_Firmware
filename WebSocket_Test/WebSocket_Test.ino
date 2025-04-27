@@ -89,7 +89,7 @@ bool RX_received = false;
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
 */
-Connection conn("http:/192.168.0.229:8000/boards/authenticate"); //Keeping conn since it does a lot of the initialization
+Connection conn("http://172.20.10.10:8000/boards/authenticate"); //Keeping conn since it does a lot of the initialization
 WebSocketsClient webSocket;
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
@@ -285,9 +285,9 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       webSocket.sendTXT("Connected");
       break;
     case WStype_TEXT:
-      websocket.sendTXT(generate_json_energy_record(transmission));
+      webSocket.sendTXT((uint8_t *)generate_json_energy_record(transmission).c_str());
     case WStype_BIN:
-      cCharacteristic->setValue(payload);
+      cCharacteristic->writeValue(payload, length);
       break;
     default:
       // Serial.println("Callback: Something else.");
