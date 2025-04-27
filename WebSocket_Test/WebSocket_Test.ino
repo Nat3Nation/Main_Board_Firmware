@@ -60,6 +60,9 @@ const uint8_t notificationOff[] = {0x0, 0x0};
 //Variables to store data
 char* dataChar;
 
+//Test Transmission
+char* transmission;
+
 /*
   Setup LoRa Modules - Reciever
   https://github.com/StuartsProjects/SX12XX-LoRa/tree/master/src
@@ -282,7 +285,7 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       webSocket.sendTXT("Connected");
       break;
     case WStype_TEXT:
-      websocket.sendTXT("Json Data Here");
+      websocket.sendTXT(generate_json_energy_record(transmission));
     case WStype_BIN:
       cCharacteristic->setValue(payload);
       break;
@@ -355,7 +358,7 @@ void setup()
   while(WiFi.status() != WL_CONNECTED) {
 		delay(100);
   }
-  webSocket.begin("192.168.0.229", 8000, "/boards/socket");     // server address, port and URL
+  webSocket.begin("172.20.10.10", 8000, "/boards/socket");     // server address, port and URL
   webSocket.onEvent(onWebSocketEvent);        // event handler
   webSocket.setReconnectInterval(5000);       // try ever 5000 again if connection has failed
   delay(100);
