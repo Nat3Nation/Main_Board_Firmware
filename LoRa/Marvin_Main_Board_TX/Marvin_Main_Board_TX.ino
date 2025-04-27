@@ -60,6 +60,7 @@ void setup() {
   delay(1000);
   readPacket();
   delay(1000);
+  /*
   String message;
   char *send;
   for(int i = 0; i < 5; i++) {
@@ -70,6 +71,14 @@ void setup() {
     readPacket();
     delay(1000);
   }
+  */
+  String message;
+  char *send;
+  message = preamble + "7265636F72642C3132333435393837362C3132302C302C302C31302C302C302C39302C302C302C34352C302C302C312E30302C302C312C30";
+  Serial1.println(message);
+  delay(2000);
+  readPacket();
+  delay(1000);
 }
 
 void readPacket() {

@@ -28,6 +28,8 @@ class Connection
 
     void ping_LoRa_Backend();
 
+    void HTTP_send_data(String const & message);
+
 
   private:
     unsigned long lastTime_;

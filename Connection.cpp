@@ -88,7 +88,7 @@ void Connection::initBackend()
     http.begin(client_, serverName_);
     http.setTimeout(10000);
     http.addHeader("Content-Type", "application/json");
-    String jsonPayload = "{\"id\":\"123456789\",\"board_type\":\"ADE9000\"}";
+    String jsonPayload = "{\"id\":\"680984395ae884f071d887ae\",\"board_type\":\"ADE9000\"}";
     int httpCode = http.POST(jsonPayload);
     if (httpCode > 0) { // HTTP response received
       String payload = http.getString();
@@ -102,9 +102,9 @@ void Connection::initBackend()
     http.end();
   }
   char header[250];  
-  sprintf(header, "Authorization: %s\r\n", token.c_str());
+  sprintf(header, "Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDk4NDM5NWFlODg0ZjA3MWQ4ODdhZSIsImV4cCI6MTc0NTU0MzE4M30.xallqydEMP7ilQxfH3JbWtB5Wwy8KHlClgfPrPHHiEU\r\n");
+  webSocket_.begin("172.20.10.10", 8000, "/boards/socket");
   webSocket_.setExtraHeaders(header);
-  webSocket_.begin("192.168.0.229", 8000, "/boards/socket");
 
   webSocket_.onEvent(onWebSocketEvent);
 }
@@ -199,7 +199,7 @@ void Connection::ping_LoRa_Backend() {
     String token;
   
     // Your Domain name with URL path or IP address with path
-    String server = "http://192.168.0.229:8000/demo";
+    String server = "http://172.20.10.10:8000/demo";
     http.begin(client, server);
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.GET();
@@ -220,6 +220,29 @@ void Connection::ping_LoRa_Backend() {
   else {
     Serial.println("WiFi Disconnected");
   }
+}
+
+void Connection::HTTP_send_data(String const & message) {
+  //Check WiFi connection status
+  if(WiFi.status()== WL_CONNECTED) {
+    WiFiClient client;
+    HTTPClient http;
+  
+    // Your Domain name with URL path or IP address with path
+    http.begin(client, "http://172.20.10.10:8000/energy-recordss");
+    http.addHeader("Content-Type", "application/json");
+    int httpResponseCode = http.POST(message);
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+      
+    // Free resources
+    http.end();
+  }
+  else {
+    Serial.println("WiFi Disconnected");
+  }
+  lastTime_ = millis();
+  
 }
 
 void Connection::loop() {

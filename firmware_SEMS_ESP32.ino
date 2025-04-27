@@ -59,7 +59,7 @@ bool RX_set = false;
 bool RX_received = false;
 //LORA
 
-Connection conn("http:/192.168.0.229:8000/boards/authenticate"); 
+Connection conn("http://172.20.10.10:8000/boards/authenticate"); 
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -82,6 +82,9 @@ static void dataNotifyCallback(
   size_t length,
   bool isNotify) {
     dataChar = (char*)pData;
+    String json = generate_json_energy_record(dataChar);
+    //conn.send(json.c_str());
+    conn.HTTP_send_data(json.c_str());
     Serial.print("Received data: ");
     Serial.println(dataChar);
 }
@@ -141,8 +144,12 @@ void packet_is_OK()
   Serial.print(F(",Errors,"));
   Serial.print(errors);
   Serial.print(F(",IRQreg,"));
-  Serial.print(IRQStatus, HEX);
+  Serial.println(IRQStatus, HEX);
 
+  String json = generate_json_energy_record((char *)RXBUFFER);
+  Serial.println(json.c_str());
+  //conn.send(json.c_str());
+  conn.HTTP_send_data(json.c_str());
   conn.ping_LoRa_Backend();
 }
 
@@ -327,7 +334,7 @@ void setup()
 
 void loop()
 {
-  conn.loop();
+  //conn.loop();
   delay(100);
 
   if (doConnect == true) {

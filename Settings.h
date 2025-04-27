@@ -46,4 +46,4 @@ const int8_t TXpower = 10;                      //LoRa transmit power in dBm
 
 const uint16_t packet_delay = 1000;             //mS delay between packets
 
-#define RXBUFFER_SIZE 32                        //RX buffer size  
+#define RXBUFFER_SIZE 113                        //RX buffer size  
