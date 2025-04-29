@@ -1,6 +1,5 @@
 /*
-  SEMS DFA Motherboard Firmware Websocket Test- ECE/MEM 17
-  Developed by: Nate Judd, Cassius Garcia, Kaylie Ludwick, Varun Iyengar, and Harrison Muller
+  Websocket Test Sketch - ECE/MEM 17
   Description:
     This file includes firmware for the operation of the DFA Motherboard, including code to read energy data from the onboard ADE9000s, LoRa communications
     Bluetooth Low Energy Communications, and Data Transfer to the System Backend.
@@ -61,7 +60,7 @@ const uint8_t notificationOff[] = {0x0, 0x0};
 char* dataChar;
 
 //Test Transmission
-char* transmission;
+String mainboard_trans = "{\"data\": [{\"id\": \"board-666\",\"VA_MAG\": 120.0,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Harrison's Box\",  \"ade_id\": 330000000}}]}";
 
 /*
   Setup LoRa Modules - Reciever
@@ -491,26 +490,12 @@ void loop()
 
     digitalWrite(LED1, LOW);
 
+    //Send data received over LoRa to server
     webSocket.sendTXT((uint8_t*)RXBUFFER, RXPacketL, false);
   }
 
-  //If user input is provided, send the command over bluetooth to the clientboard
-  /*
-  if(connected && Serial.available()){
-    flushInputBuffer();
-    char command = '2';
-    while(1){
-      char input = Serial.read();
-      if (input == '\r') {
-        Serial.println();
-        break;
-      } else {
-        command = input;
-      }
-    }
-    cCharacteristic->writeValue(command, 8);
-  }
-  */
+  //Send data from THIS motherboard to the server
+  webSocket.sendTXT((uint8_t*)mainboard_trans.c_str(), mainboard_trans.length(), false);
 
   /*
   Code for ADE9000 and Data Manipulation - Commented for Development
