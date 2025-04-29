@@ -244,7 +244,37 @@ void Connection::HTTP_send_data(String const & message) {
     Serial.println("WiFi Disconnected");
   }
   lastTime_ = millis();
+}
+
+void Connection::HTTP_poll_actuate(String const & message) {
+  if(WiFi.status()== WL_CONNECTED) {
+    WiFiClient client;
+    HTTPClient http;
+    String token;
   
+    // Your Domain name with URL path or IP address with path
+    String server = "http://172.20.10.10:8000/actuate";
+    http.begin(client, server);
+    http.setTimeout(100000);
+    //http.addHeader("Content-Type", "application/json");
+    int httpResponseCode = http.GET();
+    if (httpResponseCode > 0) { // HTTP response received
+      String payload = http.getString();
+      DynamicJsonDocument doc(1024);
+      deserializeJson(doc, payload);
+      token = doc["payload"].as<String>();
+      Serial.println(payload);
+    }
+    else{
+      Serial.println("Error");
+    }
+      
+    // Free resources
+    http.end();
+  }
+  else {
+    Serial.println("WiFi Disconnected");
+  }
 }
 
 void Connection::loop() {

@@ -42,7 +42,7 @@ String generate_json_energy_record(char *transmission) {
   // Create a DynamicJsonDocument
   DynamicJsonDocument doc(2048);
 
-  String fields[18];
+  String fields[19];
   String copy;
   char *str;
   int i = 0;
@@ -52,6 +52,34 @@ String generate_json_energy_record(char *transmission) {
     i++;
   } // delimiter is the semicolon
 
+  String output[19];
+  sprintf(output[0], "{\"data\": [{\"id\": \"%s\",", fields[0]);
+  sprintf(output[1], "\"VA_MAG\": %s,", fields[1]);
+  sprintf(output[2], "\"VB_MAG\": %s,", fields[2]);
+  sprintf(output[3], "\"VC_MAG\": %s,", fields[3]);
+  sprintf(output[4], "\"IA_MAG\": %s,", fields[4]);
+  sprintf(output[5], "\"IB_MAG\": %s,", fields[5]);
+  sprintf(output[6], "\"IC_MAG\": %s,", fields[6]);
+  sprintf(output[7], "\"VA_ANG\": %s,", fields[7]);
+  sprintf(output[8], "\"VB_ANG\": %s,", fields[8]);
+  sprintf(output[9], "\"VC_ANG\": %s,", fields[9]);
+  sprintf(output[10], "\"IA_ANG\": %s,", fields[10]);
+  sprintf(output[11], "\"IB_ANG\": %s,", fields[11]);
+  sprintf(output[12], "\"IC_ANG\": %s,", fields[12]);
+  sprintf(output[13], "\"POW_FACTOR\": %s,", fields[13]);
+  sprintf(output[14], "\"POW_APPARENT\": %s,", fields[14]);
+  sprintf(output[15], "\"POW_ACTIVE\": %s,", fields[15]);
+  sprintf(output[16], "\"POW_REACTIVE\": %s,", fields[16]);
+  sprintf(output[17], "\"board_info\": {\"board_id\": \"%s\", ", fields[17]);
+  sprintf(output[18], "\"ade_id\": %s}}]}", fields[18]);
+
+  String data = "";
+  for(int i = 0; i < 19; i++) {
+    data = data + output[i];
+  }
+
+  return data;
+  /*
   // Add data to the document
   doc["action"] = fields[0];
   doc["ade_id"] = fields[1];
@@ -77,4 +105,5 @@ String generate_json_energy_record(char *transmission) {
   String jsonString;
   serializeJson(doc, jsonString);
   return jsonString;
+  */
 }
