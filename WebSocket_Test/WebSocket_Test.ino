@@ -89,7 +89,7 @@ bool RX_received = false;
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
 */
-Connection conn("http://172.20.10.10:8000/boards/authenticate"); //Keeping conn since it does a lot of the initialization
+Connection conn("http:/192.168.0.229:8000/boards/authenticate"); //Keeping conn since it does a lot of the initialization
 WebSocketsClient webSocket;
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
@@ -122,6 +122,7 @@ static void dataNotifyCallback(
     dataChar = (char*)pData;
     Serial.print("Received data: ");
     Serial.println(dataChar);
+    webSocket.sendTXT(dataChar, length, false);
 }
 
 /*
@@ -280,12 +281,11 @@ void onWebSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     Serial.print("Received error: ");
       Serial.write(payload, length);
       Serial.println();
+      break;
     case WStype_CONNECTED:
       Serial.println("Connected to WebSocket server");
-      webSocket.sendTXT("Connected");
+      webSocket.sendTXT("Connected to WebSocket client");
       break;
-    case WStype_TEXT:
-      webSocket.sendTXT((uint8_t *)generate_json_energy_record(transmission).c_str());
     case WStype_BIN:
       cCharacteristic->writeValue(payload, length);
       break;
@@ -490,6 +490,8 @@ void loop()
     RX_received = false;
 
     digitalWrite(LED1, LOW);
+
+    webSocket.sendTXT((uint8_t*)RXBUFFER, RXPacketL, false);
   }
 
   //If user input is provided, send the command over bluetooth to the clientboard
