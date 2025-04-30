@@ -84,6 +84,8 @@ bool RX_received = false;
 
 String dummy_data = "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": 120.0,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}";
 
+int iterate = 0;
+
 /*
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
@@ -402,7 +404,7 @@ void setup()
 void loop()
 {
   //Connect to WiFi using Websocket
-  conn.loop();
+  //conn.loop();
   delay(100);
 
   //Connect Bluetooth Client Board and Handle Notifications
@@ -457,6 +459,21 @@ void loop()
     RX_received = false;
 
     digitalWrite(LED1, LOW);
+  }
+
+  iterate++;
+  if (iterate > 10) {
+    int actuate = conn.HTTP_poll_actuate();
+    
+    if (actuate == 1) {
+      cCharacteristic->writeValue((uint8_t *)"1", 2);
+    }
+    else if (actuate == 0) {
+      cCharacteristic->writeValue((uint8_t *)"0", 2);
+    }
+    else {
+      Serial.println("Error in polling server");
+    }
   }
 
   //If user input is provided, send the command over bluetooth to the clientboard

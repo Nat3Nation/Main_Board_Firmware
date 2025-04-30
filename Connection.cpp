@@ -246,11 +246,12 @@ void Connection::HTTP_send_data(String const & message) {
   lastTime_ = millis();
 }
 
-void Connection::HTTP_poll_actuate(String const & message) {
+int Connection::HTTP_poll_actuate() {
   if(WiFi.status()== WL_CONNECTED) {
     WiFiClient client;
     HTTPClient http;
     String token;
+    int actuate = -1;
   
     // Your Domain name with URL path or IP address with path
     String server = "http://172.20.10.10:8000/actuate";
@@ -262,8 +263,14 @@ void Connection::HTTP_poll_actuate(String const & message) {
       String payload = http.getString();
       DynamicJsonDocument doc(1024);
       deserializeJson(doc, payload);
-      token = doc["payload"].as<String>();
-      Serial.println(payload);
+      token = doc["PIN_1"].as<String>();
+      Serial.println(token);
+      if (token.equals("HIGH")) {
+        actuate = 1;
+      }
+      else {
+        actuate = 0;
+      }
     }
     else{
       Serial.println("Error");
@@ -271,10 +278,12 @@ void Connection::HTTP_poll_actuate(String const & message) {
       
     // Free resources
     http.end();
+    return actuate;
   }
   else {
     Serial.println("WiFi Disconnected");
-  }
+    return -2;
+  } 
 }
 
 void Connection::loop() {

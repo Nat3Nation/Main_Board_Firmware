@@ -30,6 +30,7 @@ class Connection
 
     void HTTP_send_data(String const & message);
 
+    int HTTP_poll_actuate();
 
   private:
     unsigned long lastTime_;
