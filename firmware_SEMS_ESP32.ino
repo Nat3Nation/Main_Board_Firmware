@@ -90,7 +90,7 @@ int iterate = 0;
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
 */
-Connection conn("http://172.20.10.10:8000/boards/authenticate"); 
+Connection conn("http://192.168.1.34:8000/boards/authenticate"); 
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -462,17 +462,22 @@ void loop()
   }
 
   iterate++;
-  if (iterate > 10) {
+  if (iterate > 50) {
     int actuate = conn.HTTP_poll_actuate();
     
     if (actuate == 1) {
-      cCharacteristic->writeValue((uint8_t *)"1", 2);
+      cCharacteristic->writeValue("1");
+      Serial.println("Actuated Relay On");
     }
     else if (actuate == 0) {
-      cCharacteristic->writeValue((uint8_t *)"0", 2);
+      cCharacteristic->writeValue("0");
+      Serial.println("Actuated Relay Off");
+    }
+    else if (actuate == -2){
+      Serial.println("Disconnected from Wifi");
     }
     else {
-      Serial.println("Error in polling server");
+      Serial.println("Error in HTTP Communication");
     }
   }
 

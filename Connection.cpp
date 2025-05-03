@@ -103,7 +103,7 @@ void Connection::initBackend()
   }
   char header[250];  
   sprintf(header, "Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDk4NDM5NWFlODg0ZjA3MWQ4ODdhZSIsImV4cCI6MTc0NTU0MzE4M30.xallqydEMP7ilQxfH3JbWtB5Wwy8KHlClgfPrPHHiEU\r\n");
-  webSocket_.begin("172.20.10.10", 8000, "/boards/socket");
+  webSocket_.begin("192.168.1.34", 8000, "/boards/socket");
   webSocket_.setExtraHeaders(header);
 
   webSocket_.onEvent(onWebSocketEvent);
@@ -199,7 +199,7 @@ void Connection::ping_LoRa_Backend() {
     String token;
   
     // Your Domain name with URL path or IP address with path
-    String server = "http://172.20.10.10:8000/demo";
+    String server = "http://192.168.1.34:8000/demo";
     http.begin(client, server);
     http.setTimeout(100000);
     http.addHeader("Content-Type", "application/json");
@@ -230,7 +230,7 @@ void Connection::HTTP_send_data(String const & message) {
     HTTPClient http;
   
     // Your Domain name with URL path or IP address with path
-    http.begin(client, "http://172.20.10.10:8000/energy_data");
+    http.begin(client, "http://192.168.1.34:8000/energy_data");
     http.setTimeout(100000);
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.POST(message);
@@ -254,13 +254,14 @@ int Connection::HTTP_poll_actuate() {
     int actuate = -1;
   
     // Your Domain name with URL path or IP address with path
-    String server = "http://172.20.10.10:8000/actuate";
+    String server = "http://192.168.1.34:8000/actuate";
     http.begin(client, server);
     http.setTimeout(100000);
     //http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.GET();
     if (httpResponseCode > 0) { // HTTP response received
       String payload = http.getString();
+      Serial.println(payload);
       DynamicJsonDocument doc(1024);
       deserializeJson(doc, payload);
       token = doc["PIN_1"].as<String>();
