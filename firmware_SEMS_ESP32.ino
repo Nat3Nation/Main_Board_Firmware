@@ -37,6 +37,8 @@
 //Define Client Board server name
 #define bleServerName "Client_Board"
 
+#define ADC_PIN 2
+
 //Define BLUEUUIDs for required services/characteristics
 static BLEUUID cbServiceUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
 static BLEUUID cCharacteristicUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8");
@@ -84,7 +86,8 @@ bool RX_received = false;
 
 String dummy_data = "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": 120.0,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}";
 
-int iterate = 0;
+int iterate_actuate = 0;
+int iterate_ADC = 0;
 
 /*
   Setup Wifi Connection - Needed for sending Data to Server
@@ -192,7 +195,7 @@ void packet_is_OK()
   String json = generate_json_energy_record((char *)RXBUFFER);
   Serial.println(json.c_str());
   //conn.send(json.c_str());
-  conn.HTTP_send_data(dummy_data);
+  conn.HTTP_send_data(json);
   conn.ping_LoRa_Backend();
 }
 
@@ -461,8 +464,8 @@ void loop()
     digitalWrite(LED1, LOW);
   }
 
-  iterate++;
-  if (iterate > 50) {
+  iterate_actuate++;
+  if (iterate_actuate > 50) {
     int actuate = conn.HTTP_poll_actuate();
     
     if (actuate == 1) {
@@ -479,6 +482,19 @@ void loop()
     else {
       Serial.println("Error in HTTP Communication");
     }
+	iterate_actuate = 0;
+  }
+  
+  //Send mainboard data
+  iterate_ADC++;
+  if (iterate_ADC > 50) {
+	  int ADC_val = analogRead(ADC_PIN);
+	  
+	  String adc;
+	  sprintf(adc, "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": %s,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}", std::to_string(ADC_val));
+	  
+	  conn.HTTP_send_data(adc);
+	  iterate_ADC = 0;
   }
 
   //If user input is provided, send the command over bluetooth to the clientboard
