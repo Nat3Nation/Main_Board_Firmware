@@ -14,4 +14,6 @@ String getUserInput(String prompt);
 
 String generate_json_energy_record(char *transmission);
 
+String generate_json_energy_record_cb(char *transmission)
+
 #endif

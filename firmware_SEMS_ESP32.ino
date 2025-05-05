@@ -93,7 +93,7 @@ int iterate_ADC = 0;
   Setup Wifi Connection - Needed for sending Data to Server
   **See Connection.cpp and Connection.h
 */
-Connection conn("http://172.20.10.10:8000/boards/authenticate"); 
+Connection conn("http://172.20.10.10:8000/boards/authenticate"); //Change IP to current when running
 //ADE9000 ade_0(&expander, 0);
 //ADE9000 ade_1(&expander, 1);
 //int json_state = 0;
@@ -123,7 +123,7 @@ static void dataNotifyCallback(
   size_t length,
   bool isNotify) {
     dataChar = (char*)pData;
-    String json = generate_json_energy_record(dataChar);
+    String json = generate_json_energy_record_cb(dataChar);
     //conn.send(json.c_str());
     conn.HTTP_send_data(json);
     Serial.print("Received data: ");
