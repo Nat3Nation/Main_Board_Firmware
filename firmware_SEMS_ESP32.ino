@@ -487,12 +487,13 @@ void loop()
   
   //Send mainboard data
   iterate_ADC++;
-  if (iterate_ADC > 50) {
+  if (iterate_ADC > 25) {
 	  int ADC_val = analogRead(ADC_PIN);
 	  
-	  String adc;
-	  sprintf(adc, "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": %s,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}", std::to_string(ADC_val));
-	  
+	  char adc[1000];
+	  sprintf(adc, "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": %s,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}", std::to_string(ADC_val).c_str());
+	  Serial.println(adc);
+
 	  conn.HTTP_send_data(adc);
 	  iterate_ADC = 0;
   }
