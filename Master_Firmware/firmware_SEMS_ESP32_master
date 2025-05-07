@@ -201,6 +201,37 @@ void appendFile(fs::FS &fs, const char * path, const char * message) {
   file.close();
 }
 
+void sdEntry(fs::FS &fs, const char * path, const char * message){
+  if ((millis() - lastTime) > timerDelay){
+    DateTime now = rtc.now();
+    int dayOfMonth = now.day();
+    String hourStr = (now.hour() < 10 ? "0" : "") + String(now.hour(), DEC); 
+    String minuteStr = (now.minute() < 10 ? "0" : "") + String(now.minute(), DEC);
+    String secondStr = (now.second() < 10 ? "0" : "") + String(now.second(), DEC);
+
+    if (dayOfMonth!=lastDay){
+      filePath = fileName(now);
+      lastDay = dayOfMonth;
+    }
+
+    String time = hourStr + "" + minuteStr + "" + secondStr + "\r\n";
+    Serial.print("Saving data: ");
+    Serial.println(time);
+
+    //Append the data to file
+    if((SD.usedBytes()/(1024*1024)) < (SD.totalBytes()/(1024*1024))){
+      appendFile(SD, filePath.c_str(), time.c_str());
+      appendFile(SD, filePath.c_str(), message.c_str());
+    }
+    else{
+      //Determine how to delete files off of SD card and start over...
+    }
+
+    lastTime = millis();
+
+  }
+}
+
 /*
   Set up BLE callbacks - Scan and Connect to Server
   https://github.com/espressif/arduino-esp32/tree/master/libraries/BLE
@@ -226,11 +257,14 @@ static void dataNotifyCallback(
   size_t length,
   bool isNotify) {
     dataChar = (char*)pData;
-    String json = generate_json_energy_record_cb(dataChar);
+    String ble_json = generate_json_energy_record_cb(dataChar);
     //conn.send(json.c_str());
-    conn.HTTP_send_data(json);
+    conn.HTTP_send_data(ble_json);
     Serial.print("Received data: ");
-    Serial.println(json);
+    Serial.println(ble_json);
+
+    //SD Card
+    sdEntry(SD, filePath.c_Str(), ble_json.c_str());
 }
 
 /*
@@ -295,11 +329,13 @@ void packet_is_OK()
   Serial.print(F(",IRQreg,"));
   Serial.println(IRQStatus, HEX);
 
-  String json = generate_json_energy_record((char *)RXBUFFER);
-  Serial.println(json.c_str());
-  //conn.send(json.c_str());
-  conn.HTTP_send_data(json);
+  String lora_json = generate_json_energy_record((char *)RXBUFFER);
+  Serial.println(lora_json.c_str());
+  conn.HTTP_send_data(lora_json);
   conn.ping_LoRa_Backend();
+
+  //SD Card
+  sdEntry(SD, filePath.c_Str(), lora_json.c_str());
 }
 
 /*
@@ -341,7 +377,7 @@ void packet_is_Error()
 }
 
 /*
-  Print elapsec time - Use for debugging
+  Print elapsed time - Use for debugging
 */
 void printElapsedTime()
 {
@@ -446,9 +482,6 @@ void setup()
   pinMode(RFSW_V2, OUTPUT);
   digitalWrite(RFSW_V1, HIGH);
   digitalWrite(RFSW_V2, LOW);
-
-  Serial.println();
-  Serial.println(F("104_LoRa_Receiver_Detailed_Setup_ESP32 Starting"));
 
   SPI.begin(SCK, MISO, MOSI);
 
@@ -625,7 +658,7 @@ void loop()
   if (iterate_ADC > 50) {
 	  int ADC_val = analogRead(ADC_PIN);
 	  
-	  String adc;
+	  //String adc;
 	  sprintf(adc, "{\"data\": [{\"id\": \"board-069\",\"VA_MAG\": %s,\"VB_MAG\": 118.5,\"VC_MAG\": 119.2,\"IA_MAG\": 5.2,\"IB_MAG\": 4.8,\"IC_MAG\": 5.0,\"VA_ANG\": 0.0,\"VB_ANG\": 120.0,\"VC_ANG\": -120.0,\"IA_ANG\": 30.5,\"IB_ANG\": 150.2,\"IC_ANG\": -90.8,\"POW_FACTOR\": 0.92,\"POW_APPARENT\": 624.0,\"POW_ACTIVE\": 574.08,\"POW_REACTIVE\": 255.36,\"board_info\": {\"board_id\": \"Nates's house\",  \"ade_id\": 420000000}}]}", std::to_string(ADC_val));
 	  
 	  conn.HTTP_send_data(adc);
@@ -633,26 +666,7 @@ void loop()
   }
 
   //SD Card
-  if ((millis() - lastTime) > timerDelay){
-    DateTime now = rtc.now();
-    int dayOfMonth = now.day();
-    String hourStr = (now.hour() < 10 ? "0" : "") + String(now.hour(), DEC); 
-    String minuteStr = (now.minute() < 10 ? "0" : "") + String(now.minute(), DEC);
-    String secondStr = (now.second() < 10 ? "0" : "") + String(now.second(), DEC);
-
-    if (dayOfMonth!=lastDay){
-      filePath = fileName(now);
-      lastDay = dayOfMonth;
-    }
-
-    String time = hourStr + "" + minuteStr + "" + secondStr + "\r\n";
-    Serial.print("Saving data: ");
-    Serial.println(time);
-
-    //Append the data to file
-    appendFile(SD, filePath.c_str(), time.c_str());
-
-    lastTime = millis();
+  sdEntry(SD, filePath.c_Str(), adc.c_str());
 
   }
 
