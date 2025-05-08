@@ -201,6 +201,28 @@ void appendFile(fs::FS &fs, const char * path, const char * message) {
   file.close();
 }
 
+void deleteAllFiles(File dir) {
+  while (true) {
+    File entry = dir.openNextFile();
+    if (!entry) { //Nothing left on the SD card...
+      break;
+    }
+    if (entry.isDirectory()) {
+      deleteAllFiles(entry); // Recursive call
+      SD.rmdir(entry.name());
+      Serial.print("Removed directory: ");
+      Serial.println(entry.name());
+    } else {
+      SD.remove(entry.name());
+      Serial.print("Removed file: ");
+      Serial.println(entry.name());
+    }
+
+    entry.close();
+  }
+  dir.close();
+}
+
 void sdEntry(fs::FS &fs, const char * path, const char * message){
   if ((millis() - lastTime) > timerDelay){
     DateTime now = rtc.now();
@@ -219,12 +241,25 @@ void sdEntry(fs::FS &fs, const char * path, const char * message){
     Serial.println(time);
 
     //Append the data to file
-    if((SD.usedBytes()/(1024*1024)) < (SD.totalBytes()/(1024*1024))){
+    if(SD.usedBytes() < SD.totalBytes()){
       appendFile(SD, filePath.c_str(), time.c_str());
-      appendFile(SD, filePath.c_str(), message.c_str());
+      appendFile(SD, filePath.c_str(), message);
     }
     else{
       //Determine how to delete files off of SD card and start over...
+      deleteAllFiles(SD.open("/"));
+      File file = SD.open(filePath);
+      if(!file) {
+        Serial.println("File doesn't exist");
+        Serial.println("Creating file...");
+        writeFile(SD, filePath.c_str(), "Energy Data, Time \r\n");
+      }
+      else {
+        Serial.println("File already exists");  
+      }
+      file.close();
+      appendFile(SD, filePath.c_str(), time.c_str());
+      appendFile(SD, filePath.c_str(), message);
     }
 
     lastTime = millis();
@@ -264,7 +299,7 @@ static void dataNotifyCallback(
     Serial.println(ble_json);
 
     //SD Card
-    sdEntry(SD, filePath.c_Str(), ble_json.c_str());
+    sdEntry(SD, filePath.c_str(), ble_json.c_str());
 }
 
 /*
@@ -335,7 +370,7 @@ void packet_is_OK()
   conn.ping_LoRa_Backend();
 
   //SD Card
-  sdEntry(SD, filePath.c_Str(), lora_json.c_str());
+  sdEntry(SD, filePath.c_str(), lora_json.c_str());
 }
 
 /*
@@ -663,11 +698,9 @@ void loop()
 	  
 	  conn.HTTP_send_data(adc);
 	  iterate_ADC = 0;
-  }
 
-  //SD Card
-  sdEntry(SD, filePath.c_Str(), adc.c_str());
-
+    //SD Card
+    sdEntry(SD, filePath.c_str(), adc.c_str());
   }
 
   /*
