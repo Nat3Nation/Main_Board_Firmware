@@ -1,3 +1,13 @@
+DFA Motherboard Description:
+  The DFA motherboard is hooked up to a meter or other electrical source and takes both current and voltage readings using eight onboard 5A current transformers (CTs), two 240VAC voltage input terminals, and two ADE9000 power measurement ICs. The board is powered by either a 240VAC~5VDC onboard power supply, an external 5V battery, or via the programmable interface. These power sources feed the low-voltage power supply, which powers the ADE9000s and ESP32 microcontroller. The ESP32 microcontroller functions as the primary brain of the DFA board, taking readings from the ADE9000s and sending them via Wi-Fi to the database housed on a server running AWS. The ESP32 will also take commands from the user to actuate appliances via client boards, communicating with these boards via Bluetooth. The DFA boards also include four daughter board slots, one of which will house a LoRa module for board-to-board communication. An SD card is also present on the board to allow for continued data collection in emergency situations. 
+
+DFA Motherboard Functionality
+  The DFA motherboard acts as the central node where all the project software and hardware components share information. The DFA motherboard is hooked up to the meter or primary feeder to the building to take total energy readings. The DFA is set up to receive data over LoRa in case another building in the network loses Wi-Fi, as well as data over Bluetooth from the client boards present within the building. The DFA motherboard connects to the AWS Linux server over Wi-Fi, sending data to the backend which then stores the data in the database. The DFA motherboard also polls for commands from the backend to actuate the client boards, communicating these commands over Bluetooth.
+
+DFA Motherboard Firmware
+  This github contains the firmware for the DFA motherboard. The full firmare implementation for the board is stored in the Master_Firmware folder, and includes LoRa for long range communications, BLE to support communications with a client board, HTTP data transmission and polling for sending data and receiving commands, setting up Wi-Fi, and reading from the ADE9000s. Testing has confirmed the functionality of these components, with results for the LoRa testing stored in ECE 17 Senior Design Group OneDrive. Further work involves extending the firmware to support multiple client boards and to look into the possibility of an RTOS based implementation.
+
+
 Testing different SPI SS pins for reading ADE9000:
 
 right input. left input.
